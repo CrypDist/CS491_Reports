@@ -1,24 +1,51 @@
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
+import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 
-public class Block 
+import javax.xml.bind.DatatypeConverter;
+
+/**
+ * A block in the chain
+ * Hash: Unique key of the block (Computed based on all data of the block)
+ * Previous hash: Points to the previous block
+ * Merkle root: Root signature of merkle tree to check the validity of transactions
+ * Timestamp: Creation time
+ * Nonce: Number of attempts to produce a hash key with four leading zeros
+ * Target difficulty: Maximum number of difficulty to produce a hash key
+ *
+ * */
+
+public class Block implements Serializable
 {
-	public static final int BLOCK_SIZE = 0;
+	private static final long serialVersionUID = 1L;
 	private long id;
-	private int dataCounter;
 	private MerkleTree data;
 	
 	// header information
-	private int version;
+	private String hash;
 	private String prevHash;
-	private String timestamp;
+	private String merkleRoot;
+	private long timestamp;
+	private int nonce;
+	private long targetDifficulty;
 	
-	public Block(String rawBlock)
+	public Block(long id, String prevHash, long timestamp, int nonce, long targetDifficulty, 
+				 ArrayList<String> transactions) throws NoSuchAlgorithmException, 
+														UnsupportedEncodingException
 	{
-		
+		this.id = id;
+		this.prevHash = prevHash;
+		this.timestamp = timestamp;
+		this.nonce = nonce;
+		this.targetDifficulty = targetDifficulty;
+		data = new MerkleTree(transactions);
+		merkleRoot = data.getRoot();
+		hash = computeHash();
 	}
 	
-	public String getTimestamp()
+	public long getTimestamp()
 	{
 		return timestamp;
 	}
@@ -28,15 +55,38 @@ public class Block
 		return id;
 	}
 
-	public String getHash() 
+	private String computeHash() throws NoSuchAlgorithmException, UnsupportedEncodingException 
 	{
-		// SHA512
-		return null;
+		MessageDigest md = MessageDigest.getInstance("SHA-512");
+		String blockData = "{" + timestamp + ":" + id + ":" + prevHash + ":" + nonce 
+							+ ":" + data.getRoot() + "}";
+		return DatatypeConverter.printHexBinary(md.digest(blockData.getBytes("UTF-8")));
+	}
+	
+	public long computeDifficulty()
+	{
+		// TODO
+		return 0;
+	}
+	
+	public long getTargetDifficulty()
+	{
+		return targetDifficulty;
+	}
+	
+	public String getHash()
+	{
+		return hash;
 	}
 	
 	public String getPreviousHash()
 	{
 		return prevHash;
+	}
+	
+	public String getMerkleRoot()
+	{
+		return merkleRoot;
 	}
 	
 	public void setPreviousHash(String prevHash)
